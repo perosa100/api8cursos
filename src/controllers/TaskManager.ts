@@ -4,10 +4,10 @@ import { TaskRepository } from '../repositories/TaskRepository'
 import { validate } from 'uuid'
 class TaskManager {
   async listall(request: Request, response: Response) {
-    const page = Number(request.query['page']) || 1
+    const page = Number(request.query['page']) || Number(1)
     const ordem: any = request.query['ordem']
     const filter = request.query['filter']
-    const itens = Number(request.query['itens']) || 2
+    const itens = Number(request.query['itens']) || Number(2)
 
     const tasksRepository = getCustomRepository(TaskRepository)
     console.log('page', page)
@@ -16,7 +16,20 @@ class TaskManager {
     console.log('itens', itens)
 
     let listAllPage
-    if (ordem[1] && !filter[1]) {
+
+    if (!ordem[1] && !filter[1]) {
+      console.log('nao tem ordem e nao filtro')
+      listAllPage = await tasksRepository.find({
+        skip: page,
+        take: itens
+      })
+    } else if (!ordem[1] && !filter[1]) {
+      console.log('nao tem ordem e nao filtro')
+      listAllPage = await tasksRepository.find({
+        skip: page,
+        take: itens
+      })
+    } else if (ordem[1] && !filter[1]) {
       console.log('tem ordem e nao filtro')
       listAllPage = await tasksRepository.find({
         skip: page,
@@ -30,6 +43,13 @@ class TaskManager {
         take: itens
       })
     } else if (ordem[1] && filter[1]) {
+      console.log('nao tem tem ordem e filtro')
+      listAllPage = await tasksRepository.find({
+        skip: page,
+        take: itens,
+        where: { name: Like('%' + filter[1] + '%') }
+      })
+    } else {
       console.log(' tem ordem e  filtro')
       listAllPage = await tasksRepository.find({
         skip: page,
@@ -37,15 +57,10 @@ class TaskManager {
         order: { name: ordem[1] },
         where: { name: Like('%' + filter[1] + '%') }
       })
-    } else {
-      console.log('nao tem tem ordem e filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens,
-        where: { name: Like('%' + filter[1] + '%') }
-      })
     }
-    return response.status(201).json(listAllPage)
+    return response
+      .status(201)
+      .json({ tasks: listAllPage, totalPages: listAllPage.length })
   }
 
   async listId(request: Request, response: Response) {
