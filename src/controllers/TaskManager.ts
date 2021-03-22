@@ -1,166 +1,160 @@
 import { Request, Response } from 'express'
-import { getCustomRepository, Like } from 'typeorm'
+import { getCustomRepository, ILike } from 'typeorm'
 import { TaskRepository } from '../repositories/TaskRepository'
 import { validate } from 'uuid'
-class TaskManager {
-  async listall(request: Request, response: Response) {
-    const page = Number(request.query['page']) || Number(1)
-    const ordem: any = request.query['ordem']
-    const filter = request.query['filter']
-    const itens = Number(request.query['itens']) || Number(2)
 
-    const tasksRepository = getCustomRepository(TaskRepository)
-    console.log('page', page)
-    console.log('ordem', ordem[1])
-    console.log('filter', filter[1])
-    console.log('itens', itens)
+const listall = async (request: Request, response: Response) => {
+  let page = Number(request.query.page) || 1
+  let ordem: any = request.query.ordem || undefined
+  let filter = request.query.filter || undefined
+  let itens = Number(request.query.itens) || 3
 
-    let listAllPage
+  const tasksRepository = getCustomRepository(TaskRepository)
 
-    if (!ordem[1] && !filter[1]) {
-      console.log('nao tem ordem e nao filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens
-      })
-    } else if (!ordem[1] && !filter[1]) {
-      console.log('nao tem ordem e nao filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens
-      })
-    } else if (ordem[1] && !filter[1]) {
-      console.log('tem ordem e nao filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens,
-        order: { name: ordem[1] }
-      })
-    } else if (!ordem[1] && !filter[1]) {
-      console.log('nao tem ordem e nao filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens
-      })
-    } else if (ordem[1] && filter[1]) {
-      console.log('nao tem tem ordem e filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens,
-        where: { name: Like('%' + filter[1] + '%') }
-      })
-    } else {
-      console.log(' tem ordem e  filtro')
-      listAllPage = await tasksRepository.find({
-        skip: page,
-        take: itens,
-        order: { name: ordem[1] },
-        where: { name: Like('%' + filter[1] + '%') }
-      })
-    }
-    return response
-      .status(201)
-      .json({ tasks: listAllPage, totalPages: listAllPage.length })
-  }
+  console.log('page', page)
+  console.log('ordem', ordem)
+  console.log('filter', filter)
+  console.log('itens', itens)
 
-  async listId(request: Request, response: Response) {
-    const id = request.params.id
-
-    const idValidation = validate(id)
-    if (!idValidation) {
-      return response.status(400).json({
-        erro: 'ID de Inesistente '
-      })
-    }
-
-    const tasksRepository = getCustomRepository(TaskRepository)
-
-    const taksID = await tasksRepository.findOne({ id })
-
-    if (!taksID) {
-      return response.status(400).json({
-        erro: 'Tarefa não Existe'
-      })
-    }
-
-    return response.status(201).json(taksID)
-  }
-  async create(request: Request, response: Response) {
-    const { name } = request.body
-
-    const taskRepository = getCustomRepository(TaskRepository)
-
-    const task = taskRepository.create({
-      name
+  if (ordem && filter) {
+    console.log('ordem e filter existe')
+    page = 1
+    var [result, count] = await tasksRepository.findAndCount({
+      where: { name: ILike(`%${filter}%`) },
+      take: itens,
+      skip: itens * (page - 1),
+      order: { name: ordem },
+      cache: true
     })
-
-    await taskRepository.save(task)
-
-    return response.status(201).json(task)
+  } else if (filter) {
+    console.log('filter  existe')
+    page = 1
+    var [result, count] = await tasksRepository.findAndCount({
+      where: { name: ILike(`%${filter}%`) },
+      take: itens,
+      skip: itens * (page - 1),
+      cache: true
+    })
+  } else if (ordem) {
+    console.log('ordem existe')
+    page = 1
+    var [result, count] = await tasksRepository.findAndCount({
+      take: itens,
+      skip: itens * (page - 1),
+      order: { name: ordem },
+      cache: true
+    })
+  } else {
+    console.log('ordem nao existe nem filter')
+    var [result, count] = await tasksRepository.findAndCount({
+      take: itens,
+      skip: itens * (page - 1),
+      cache: true
+    })
   }
-  async update(request: Request, response: Response) {
-    const { name, done } = request.body
 
-    if (!name || !done) {
-      return response.status(400).json({
-        erro: 'Requisição inválida'
-      })
-    }
-    const id = request.params.id
-
-    const tasksRepository = getCustomRepository(TaskRepository)
-
-    let findTask = await tasksRepository.findOne(id)
-
-    if (!findTask) {
-      return response.status(400).json({
-        erro: 'Tarefa invalida'
-      })
-    }
-
-    findTask.name = name
-    findTask.done = done
-
-    const updateLog = await tasksRepository.save(findTask)
-
-    return response.status(201).json(updateLog)
-  }
-  async delete(request: Request, response: Response) {
-    const id = request.params.id
-
-    const tasksRepository = getCustomRepository(TaskRepository)
-
-    let findTask = await tasksRepository.findOne(id)
-
-    if (!findTask) {
-      return response.status(400).json({
-        erro: 'Tarefa invalida'
-      })
-    }
-
-    await tasksRepository.remove(findTask)
-
-    return response.status(201).json('Tarefa Deletada')
-  }
-  async updateIdDone(request: Request, response: Response) {
-    const id = request.params.id
-
-    const tasksRepository = getCustomRepository(TaskRepository)
-
-    let findTask = await tasksRepository.findOne(id)
-
-    if (!findTask) {
-      return response.status(400).json({
-        erro: 'Tarefa invalida'
-      })
-    }
-
-    findTask.done = true
-
-    const updateLog = await tasksRepository.save(findTask)
-
-    return response.status(201).json(updateLog)
-  }
+  return response.status(201).json({ tasks: result, totalPages: count, page })
 }
 
-export { TaskManager }
+const listId = async (request: Request, response: Response) => {
+  const id = request.params.id
+
+  const idValidation = validate(id)
+  if (!idValidation) {
+    return response.status(400).json({
+      erro: 'ID de Inesistente '
+    })
+  }
+
+  const tasksRepository = getCustomRepository(TaskRepository)
+
+  const taksID = await tasksRepository.findOne({ id })
+
+  if (!taksID) {
+    return response.status(400).json({
+      erro: 'Tarefa não Existe'
+    })
+  }
+
+  return response.status(201).json(taksID)
+}
+const create = async (request: Request, response: Response) => {
+  const { name } = request.body
+
+  const taskRepository = getCustomRepository(TaskRepository)
+
+  const task = taskRepository.create({
+    name
+  })
+
+  await taskRepository.save(task)
+
+  return response.status(201).json(task)
+}
+const update = async (request: Request, response: Response) => {
+  const { name, done } = request.body
+  console.log(name, done)
+
+  if (!name) {
+    return response.status(400).json({
+      erro: 'Requisição inválida'
+    })
+  }
+  const id = request.params.id
+
+  const tasksRepository = getCustomRepository(TaskRepository)
+
+  let findTask = await tasksRepository.findOne(id)
+
+  if (!findTask) {
+    return response.status(400).json({
+      erro: 'Tarefa invalida'
+    })
+  }
+
+  findTask.name = name
+  findTask.done = done
+
+  const updateLog = await tasksRepository.save(findTask)
+
+  return response.status(201).json(updateLog)
+}
+
+const remove = async (request: Request, response: Response) => {
+  const id = request.params.id
+
+  const tasksRepository = getCustomRepository(TaskRepository)
+
+  let findTask = await tasksRepository.findOne(id)
+
+  if (!findTask) {
+    return response.status(400).json({
+      erro: 'Tarefa invalida'
+    })
+  }
+
+  await tasksRepository.remove(findTask)
+
+  return response.status(201).json('Tarefa Deletada')
+}
+const updateIdDone = async (request: Request, response: Response) => {
+  const id = request.params.id
+
+  const tasksRepository = getCustomRepository(TaskRepository)
+
+  let findTask = await tasksRepository.findOne(id)
+
+  if (!findTask) {
+    return response.status(400).json({
+      erro: 'Tarefa invalida'
+    })
+  }
+
+  findTask.done = true
+
+  const updateLog = await tasksRepository.save(findTask)
+
+  return response.status(201).json(updateLog)
+}
+
+export { listId, listall, create, update, updateIdDone, remove }
