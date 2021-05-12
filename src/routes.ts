@@ -1,28 +1,20 @@
 import { Router } from 'express'
+
+import { createUser, showUser } from './controllers/UserController'
+import { createSession } from './controllers/SessionController'
 import {
-  create,
-  listId,
-  listall,
-  remove,
-  update,
-  updateIdDone
-} from './controllers/TaskManager'
-import {
-  checkout,
-  getCityandState,
-  getProducts
-} from './controllers/Ecommerces'
+  createPermission,
+  showPermission
+} from './controllers/PermissionController'
 
 const router = Router()
 
-router.get('/manager-task', listall)
-router.get('/manager-task/:id', listId)
-router.post('/manager-task', create)
-router.put('/manager-task/:id', update)
-router.delete('/manager-task/:id', remove)
-router.put('/manager-task/:id/done', updateIdDone)
+router.post('/users', createUser)
+router.get('/users', showUser)
 
-router.post('/mini-ecommerces/checkout', checkout)
-router.get('/mini-ecommerces/:slugCity/cidades', getCityandState)
-router.get('/mini-ecommerces/products', getProducts)
+router.get('/sessions', createSession)
+
+router.post('/permissions', createPermission)
+router.get('/permissions', showPermission)
+
 export { router }

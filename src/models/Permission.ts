@@ -1,16 +1,21 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm'
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn
+} from 'typeorm'
 import { v4 as uuid } from 'uuid'
 
-@Entity('tasks')
-class Task {
-  @PrimaryColumn()
+@Entity('permissions')
+class Permission {
+  @PrimaryGeneratedColumn('uuid')
   readonly id: string
 
   @Column()
   name: string
 
   @Column()
-  done: boolean
+  description: string
 
   @CreateDateColumn()
   created_at: Date
@@ -22,4 +27,4 @@ class Task {
   }
 }
 
-export { Task }
+export { Permission }
